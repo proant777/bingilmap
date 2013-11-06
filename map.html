@@ -1,0 +1,601 @@
+<script type="text/javascript" src="https://maps.google.com/maps/api/js?key=AIzaSyB8NhWHdXc8v1-vajKpJVW_UUDh2tsg528&sensor=true"></script>
+<script type="text/javascript" src="js/markerclustererplus.js"></script>
+
+
+<link rel="stylesheet" type="text/css" href="css/map_custom.css" />
+<div id ="map_canvas" style="height:100%;width:100%;">
+
+</div>
+
+{@
+	$oDB = &DB::getInstance();
+    $result = $oDB->_query("SELECT xe_documents.document_srl, xe_documents.title, xe_document_extra_vars.eid, xe_document_extra_vars.value from xe_documents inner join xe_document_extra_vars on xe_documents.document_srl = xe_document_extra_vars.document_srl where eid='map_address'");
+    $output = $oDB->_fetch($result);
+
+}
+
+
+<script>
+
+	// page/map/location_filter2.html
+	// page/map/widget.html/?mid="+"campingzone"+ "&document_srl="+mid
+	var lat=  new Array();
+	var lng = new Array();
+	var srl = new Array();
+	var titles = new Array();
+
+	var category="";
+	var is_autocamping="";
+	var is_electricity="";
+	var bisu_money="";
+
+	var last_ajax="http://www.bingil.com/bingil_map//ajax/location_filter.html/?category_srl=&autocamping=&electricity=&bisu_money=";
+
+	var markerCluster=null;
+	var markers = new Array();
+	var map;
+	var firstLatLng = new google.maps.LatLng(37.28935, 127.812195);
+	var choice_list = new Array();// 검색된 전체 list 번호들이 들어 있음
+	var page_per_record = 7;//화면에 표시할 자료 갯수
+	var block_per_page = 7; // 화면에 표시할 페이지 번호 갯수(블록당 페이지 수)
+	var now_page;// 현재 선택된 페이지 번호
+	var now_block; // 현재 블럭 번호
+	var total_record; // 전체 레코드 갯수
+	var total_page;
+
+
+
+<!--@foreach($output as $key => $val)-->
+	{@ $doc_number = $val->document_srl;
+
+	$title = $val->title;
+
+	$str_latlng = strrchr($val->value, '(');
+	$preg_latlng = preg_replace('/\).*|.*?\(/','',$str_latlng);
+	$latlng = explode(',', $preg_latlng);}
+
+	{@ $lat[] =$latlng[0]}
+	{@ $lng[] = $latlng[1]}
+
+		titles.push('{$title}');
+		lat.push({$latlng[0]});
+		lng.push({$latlng[1]});
+		srl.push({$doc_number});
+
+<!--@end-->
+
+	function set(value){
+		var str= value.value;
+		print(str);
+		markerCluster.setMaxZoom(str);
+
+	}
+
+	// 최초
+	function initialize() {
+		var mapDiv = document.getElementById('map_canvas');
+		var myOptions = {
+						zoom: 20,
+						center: firstLatLng,
+						mapTypeId: google.maps.MapTypeId.ROADMAP,
+
+						}
+		map = new google.maps.Map(mapDiv, myOptions);
+
+
+		for (i = 0; i < lat.length ; i++){
+			var marker = new google.maps.Marker({
+				position:new google.maps.LatLng(lat[i], lng[i]),
+				zIndex:srl[i],
+				title:titles[i],
+				icon:"http://www.bingil.com/bingil_map/img/map_icon/red_t.png",
+				map:map
+			});
+			markers.push(marker);
+
+			campingClick(marker, srl[i]);
+		}
+		delete lat;		delete lng;		delete titles;
+
+		//markerCluster = new MarkerClusterer(map,markers,{gridSize :60,maxZoom:12,});
+		allView(0);
+
+		var homeControlDiv = document.createElement('DIV');
+		var homeControl = new HomeControl(homeControlDiv, map);
+
+		homeControlDiv.index = 9999;
+		map.controls[google.maps.ControlPosition.TOP_RIGHT].push(homeControlDiv);
+		srl_is_center();	//srl넘버를 인자값으로 받은것이 있는지 확인한후, 센터 설정 하는 메소드
+
+		google.maps.event.addListener(map, 'idle', change_marker);
+
+
+	}
+
+	//View Port 관련 메소드
+	function change_marker(){
+		var map_bounds = map.getBounds();
+		var ne_lng = map_bounds.getNorthEast().lng();
+		var sw_lng = map_bounds.getSouthWest().lng();
+		var ne_lat = map_bounds.getNorthEast().lat();
+		var sw_lat = map_bounds.getSouthWest().lat();
+		var lat;
+		var lng;
+		//var counts=0;
+		for (a=0;a <markers.length ;a++ ){
+			markers[a].setVisible(false);
+		}
+		var temp = new Array();
+		for (a=0;a <markers.length ;a++ ){
+			lng = markers[a].getPosition().lng();
+			lat = markers[a].getPosition().lat();
+
+			if (ne_lng > lng && sw_lng < lng){
+				if (ne_lat > lat && sw_lat < lat){
+					//counts = counts +1;
+					temp.push(markers[a]);
+				}
+			}
+		}
+		//console.log(counts);
+
+		for (a=0;a <temp.length ;a++ ){
+			temp[a].setVisible(true);
+		}
+		marker_cluster(temp);
+	}
+	//오토캠핑 여부값 변경 메소드
+	function seAutoChange(){
+		var is_autocamping_value = document.getElementById('autocamping').value;
+		is_autocamping = is_autocamping_value;
+		var ajax = "http://www.bingil.com/bingil_map/ajax/location_filter2.html/?category_srl="+category+"&autocamping="+is_autocamping+"&electricity="+is_electricity+"&bisu_money="+bisu_money;
+
+		ajax_filter(ajax);
+	}
+	//전기 사용 여부값 변경 메소드
+	function seElecChange(){
+		var is_electricity_value = document.getElementById('electricity').value;
+		is_electricity = is_electricity_value;
+		var ajax = "http://www.bingil.com/bingil_map/ajax/location_filter2.html/?category_srl="+category+"&autocamping="+is_autocamping+"&electricity="+is_electricity+"&bisu_money="+bisu_money;
+
+		ajax_filter(ajax);
+	}
+	//캠핑장 요금 여부값 변경 메소드
+	function seMoneyChange(){
+		var bisu_money_value = document.getElementById('bisu_money').value;
+		if (isNaN(bisu_money) == true){
+				alert("숫자만 입력해주세요"+bisu_money);
+				return;
+		}
+		bisu_money = bisu_money_value;
+		var ajax = "http://www.bingil.com/bingil_map/ajax/location_filter2.html/?category_srl="+category+"&autocamping="+is_autocamping+"&electricity="+is_electricity+"&bisu_money="+bisu_money;
+
+		ajax_filter(ajax);
+	}
+
+	//체크 박스 선택시 실행되는 메소드
+	function chboxClick(form){
+		check_box = form.ch_location;
+		var str="";
+		for(var i=0; i<check_box.length; i++) {
+			if(check_box[0].checked){
+				str = check_box[0].value;
+				break;
+			}else if(check_box[i].checked){
+					str += check_box[i].value + ",";
+			}
+		}
+		if (str.length==str.lastIndexOf(',')+1){
+			str = str.substring(0,str.length-1);
+		}
+		category = str;
+		var ajax = "http://www.bingil.com/bingil_map/ajax/location_filter2.html/?category_srl="+category+"&autocamping="+is_autocamping+"&electricity="+is_electricity+"&bisu_money="+bisu_money;
+		ajax_filter(ajax);
+	}
+
+	//ajax 처리 메소드
+	function ajax_filter(ajax){
+		if (ajax == last_ajax){
+			console.log("ajax값이 동일합니다. ");
+
+		}else{
+			last_ajax = ajax;
+		}
+		var xmlhttp = new XMLHttpRequest();
+			xmlhttp.onreadystatechange=function(){
+				if (xmlhttp.readyState==4 && xmlhttp.status==200){
+					filter_View(xmlhttp.responseText);
+				}
+			  }
+			xmlhttp.open("GET",ajax , true);
+			xmlhttp.send();
+	}
+	//ajax 처리 메소드
+	function filter_View(str){
+		jQuery('#myTab a').click(function (e) {
+			e.preventDefault();
+			$('#myTab a[href="#home"]').tab('show');
+		})
+		allView(0);
+
+		str = last_str_del(str);
+		choice_list = str.split(",");
+
+		var arr = new Array();
+		inner_list();
+		for (i = 0 ;i < choice_list.length ; i++){
+			for (a = 0 ; a < markers.length  ;a++ ){
+				if (choice_list[i] == markers[a].getZIndex()){
+					arr.push(markers[a]);
+				}
+			}
+		}
+		for (s = 0 ; s < arr.length ; s++ ){
+			arr[s].setVisible(true);
+		}
+		marker_cluster(arr);
+
+	}
+	function last_str_del(str){
+		var string = str.substr(0, str.lastIndexOf(','));
+		return string;
+		}
+	//검색결과 리스트 왼쪽 지도정보창에 리스트 보여주는 메소드
+	function inner_list(){
+	var infoLayout = document.getElementById('infoLayout');
+
+		/*
+		page_per_record = 7;//화면에 표시할 자료 갯수
+		block_per_page = 5; // 화면에 표시할 페이지 번호 갯수(블록당 페이지 수)
+		now_page = 1; // 현재 선택된 페이지 번호
+		total_record = srls.length; // 전체 레코드 갯수
+		end_page;
+		*/
+		now_page=1;
+		total_record = choice_list.length; // 전체 레코드 갯수
+		total_page = Math.ceil(total_record/page_per_record);		//전체 페이지 갯수
+		var total_block = Math.ceil(total_page/block_per_page);		//전체 블록 갯수
+ 		now_block = Math.ceil(now_page/block_per_page);			// 현재 페이지가 속해 있는 블록 번호
+		var start_record = ((now_page-1) * page_per_record)+1;//가져올 레코드 시작 번호
+		var start_page = ((now_block-1)*block_per_page)+1; // 가져올 페이지 시작 번호
+		//console.log("  total_record"+total_record+"  page_per_record"+page_per_record+"  block_per_page"+block_per_page+"  now_page"+now_page+"  total_page"+total_page+"  total_block"+total_block+"  now_block"+now_block+"  start_record"+start_record+"  start_page"+start_page );
+
+
+		// 포함되어 있는 페이지 번호들
+		var record = choice_list.slice(start_record-1, (page_per_record*now_page));
+		var srl_numbers="";
+		for (i=0;i<record.length ;i++ ){
+			srl_numbers = srl_numbers+record[i] +",";
+		}
+		srl_numbers = last_str_del(srl_numbers);
+		//console.log(srl_numbers);
+
+		var xmlhttp = new XMLHttpRequest();
+					xmlhttp.onreadystatechange=function(){
+						if (xmlhttp.readyState==4 && xmlhttp.status==200){
+							infoLayout.innerHTML=xmlhttp.responseText;
+						}
+					  }
+					xmlhttp.open("GET","http://www.bingil.com/bingil_map/ajax/srl_infomation.html/?document_srl="+srl_numbers+"&total_page="+total_page+"&now_page="+now_page+"&total_record="+total_record+"&block_per_page="+block_per_page+"&now_block="+now_block+"&total_block="+total_block , true);
+					xmlhttp.send();
+
+				//console.log(str);
+				//infoLayout.innerHTML=str;
+	}
+		/*
+		// 마지막 페이지
+		if ((start_page + block_per_page)<= total_page){
+			end_page = start_page + block_per_page
+		}else{
+			end_page = total_page;
+		}
+
+		//페이지 번호
+		for (i=start_page;i<=end_page ;i++ ){
+
+		}
+		// if(now_page > 1 ){}				이전 페이지 링크 출력
+		// if(now_page < total_page){}		다음 페이지 링크 출력
+		// if(now_block > 1){}				이전 블록 링크 출력
+		// if(now_block < total_block){}	다음 블록 링크 출력
+		// if(now_block > 2 ){}				앞 블록이 2블록 이상 차이날 경우 처음으로 링크 출력
+		// if(now_block < (total_block-1)){} 남은 블록이 2블록 이상일 경우, 마지막으로 링크 출력
+		*/
+
+	// 선택된 블럭 바로가기
+	function choice_block(block){
+		now_block = block;
+		//console.log(block+"block"+now_page+"now_page"+block_per_page);
+
+		now_page=1;
+		for (i =1;i<block ;i++ ){
+			now_page = now_page + block_per_page;
+		}
+
+		var total_block = Math.ceil(total_page/block_per_page);
+		var start_record = ((now_page-1) * page_per_record)+1;//가져올 레코드 시작 번호
+
+		//console.log("testBlock",choice_list, start_record-1, page_per_record);
+
+		var record = choice_list.slice(start_record-1, (page_per_record*now_page));
+
+		//console.log(now_page, start_record-1, page_per_record, record, choice_list);
+		var srl_numbers="";
+
+		for (i=0;i<record.length ;i++ ){
+			srl_numbers = srl_numbers+record[i] +",";
+		}
+		srl_numbers = last_str_del(srl_numbers);
+		var xmlhttp = new XMLHttpRequest();
+					xmlhttp.onreadystatechange=function(){
+						if (xmlhttp.readyState==4 && xmlhttp.status==200){
+							infoLayout.innerHTML=xmlhttp.responseText;
+						}
+					  }
+					xmlhttp.open("GET","http://www.bingil.com/bingil_map/ajax/srl_infomation.html/?document_srl="+srl_numbers+"&total_page="+total_page+"&now_page="+now_page+"&total_record="+total_record+"&block_per_page="+block_per_page+"&now_block="+now_block+"&total_block="+total_block , true);
+					xmlhttp.send();
+
+	}
+	//현재 리스트 보여주기
+	function list_view(){
+		var total_block = Math.ceil(total_page/block_per_page);		//전체 블록 갯수
+		var start_record = ((now_page-1) * page_per_record)+1;//가져올 레코드 시작 번호
+
+		//console.log("test1",choice_list, start_record-1, page_per_record);
+		var record = choice_list.slice(start_record-1, (page_per_record*now_page));
+
+		//console.log(now_page, start_record-1, page_per_record, record, choice_list);
+		var srl_numbers="";
+
+		for (i=0;i<record.length ;i++ ){
+			srl_numbers = srl_numbers+record[i] +",";
+		}
+
+
+		srl_numbers = last_str_del(srl_numbers);
+
+		var xmlhttp = new XMLHttpRequest();
+					xmlhttp.onreadystatechange=function(){
+						if (xmlhttp.readyState==4 && xmlhttp.status==200){
+							infoLayout.innerHTML=xmlhttp.responseText;
+						}
+					  }
+					xmlhttp.open("GET","http://www.bingil.com/bingil_map/ajax/srl_infomation.html/?document_srl="+srl_numbers+"&total_page="+total_page+"&now_page="+now_page+"&total_record="+total_record+"&block_per_page="+block_per_page+"&now_block="+now_block+"&total_block="+total_block , true);
+					xmlhttp.send();
+
+	}
+	// 선택된 페이지로 바로가기
+	function choicePage(page){
+
+		now_page = page;
+		var total_block = Math.ceil(total_page/block_per_page);		//전체 블록 갯수
+		var start_record = ((now_page-1) * page_per_record)+1;//가져올 레코드 시작 번호
+
+		//console.log("test1",choice_list, start_record-1, page_per_record);
+		var record = choice_list.slice(start_record-1, (page_per_record*now_page));
+
+		//console.log(now_page, start_record-1, page_per_record, record, choice_list);
+		var srl_numbers="";
+
+		for (i=0;i<record.length ;i++ ){
+			srl_numbers = srl_numbers+record[i] +",";
+		}
+
+		if (srl_numbers.length==srl_numbers.lastIndexOf(',')+1){
+			srl_numbers = srl_numbers.substring(0,srl_numbers.length-1);
+		}
+		//console.log(srl_numbers);
+		var xmlhttp = new XMLHttpRequest();
+					xmlhttp.onreadystatechange=function(){
+						if (xmlhttp.readyState==4 && xmlhttp.status==200){
+							infoLayout.innerHTML=xmlhttp.responseText;
+						}
+					  }
+					xmlhttp.open("GET","http://www.bingil.com/bingil_map/ajax/srl_infomation.html/?document_srl="+srl_numbers+"&total_page="+total_page+"&now_page="+now_page+"&total_record="+total_record+"&block_per_page="+block_per_page+"&now_block="+now_block+"&total_block="+total_block , true);
+					xmlhttp.send();
+
+	}
+
+	// allView(0: 숨기기, 1: 보이기
+	function allView(bool){
+			if (bool == 1){
+				console.log("if (bool == 1){");
+				var new_marker = new Array();
+				for (i = 0; i < markers.length ;i++ ){
+					if (markers[i].getVisible()){
+
+					}else{
+						markers[i].setVisible(true);
+					}
+				}
+				marker_cluster(markers);
+			}else if (bool == 0){
+				for (i = 0; i < markers.length ;i++ ){
+					markers[i].setVisible(false);
+				}
+			}else{
+				console.log("error 102 => bool = " + bool);
+			}
+	}
+
+	// 마커 클릭이벤트 리스너 부착
+	function campingClick(marker, mid){
+			google.maps.event.addListener(marker, 'click', function(){
+			 marker.setAnimation(google.maps.Animation.BOUNCE);
+			setTimeout(function(){marker.setAnimation(null)},10000);
+			camping_view(marker, mid);
+			});
+	}
+	// infoLayout에 보여지는 부분 호출지역(xml)
+	function camping_view(marker, mid){
+		jQuery('#myTab a').click(function (e) {
+			e.preventDefault();
+			jQuery('#myTab a:first').tab('show');
+		});
+
+
+		var xmlhttp = new XMLHttpRequest();
+
+		xmlhttp.onreadystatechange=function(){
+			//console.log(xmlhttp.readyState+"xmlhttp.readyState");
+			//console.log(xmlhttp.status + "xmlhttp.status");
+
+		  if (xmlhttp.readyState==4 && xmlhttp.status==200){
+			var infoLayout = document.getElementById('infoLayout');
+
+				infoLayout.innerHTML=xmlhttp.responseText;
+
+				//jQuery('#myModal').modal({show: false,keyboard: false,backdrop:true});
+
+			}
+		  }
+
+		xmlhttp.open("GET", "http://www.bingil.com/bingil_map/ajax/widget.html/?mid="+"campingzone"+ "&document_srl="+mid, true);
+		xmlhttp.send();
+
+	}
+
+	//마커 클러스터
+	function marker_cluster(marker_array){
+		markerCluster.clearMarkers();
+		markerCluster.addMarkers(marker_array);
+	}
+	// 인자값으로 받아온 map?srl=1478 형태에서 숫자만을 걸러서 marker_set_focus(srl) 메소드를 호출한다
+	function srl_is_center(){
+			var tmp=window.location;
+			tmp=String(tmp).split('?');
+			tmp=String(tmp[1]).split('&');
+
+			if (String(tmp).indexOf("srl")==-1){
+				getLocation();
+				return;
+			}
+
+			//변수값 출력
+			for(k in tmp) {
+				tmp2=tmp[k].split('='); //키와 값분리
+				eval("var "+tmp2[0]+"=tmp2[1]");
+			}
+			if (tmp2[0]=srl){
+				marker_set_focus(tmp2[1]);
+			}
+	}
+	// 인자값으로 받은 srl넘버를 센터로 지정한다
+	function marker_set_focus(srl){
+			for (i=1;i < markers.length ;i++ ){
+				if (markers[i].getZIndex() == srl){
+					var ma = markers[i];
+					ma.setVisible(true);
+					map.setZoom(12);
+					map.setCenter(ma.getPosition());
+
+					ma.setAnimation(google.maps.Animation.BOUNCE);
+					setTimeout(function(){ma.setAnimation(null)},10000);
+
+					camping_view(ma , srl);
+
+				}
+			}
+	}
+	//브라우저에서, 좌표를 받아오는 부분 showPosition 으로 좌표값을 던져준다.
+	function getLocation(){
+		if (navigator.geolocation) {
+				navigator.geolocation.watchPosition(showPosition);
+
+		}else{
+				console.log("이 브라우저는, 현재위치를 확인할 수 없는 브라우저 입니다.");
+		}
+	}
+	//스트링을 innerHTML로 지도정보 탭에 띄워주는 메소드
+	function print(str){
+		var infoLayout = document.getElementById('infoLayout');
+		console.log();
+				infoLayout.innerHTML=str;
+
+	}
+	// 마커를 넘기면... Document 번호를 반환
+	function getDocument(marker){
+		for (i=0;i<markers.length ;i++ ){
+			if (markers[i]==marker){
+				return markers[i].getZIndex();
+			}
+		}
+	}
+	// Document번호를 넘기면 마커를 반환
+	function getMarker(srl){
+		for (i=0;i<markers.length ;i++ ){
+			if (markers[i].getZIndex()==srl){
+				console.log(markers[i].getZIndex());
+				return markers[i];
+			}
+		}
+	}
+	// 받아온 도큐먼트 번호를 바탕으로 센터 잡는 메소드
+	function setCenterMarker(srl){
+		var s = getMarker(srl)
+		//console.log("function setCenterMarker(marker){");
+		map.setCenter(s.getPosition());
+		map.setZoom(11);
+
+	}
+	// 받아온 좌표값을 활용하여, 센터를 잡는 메소드, 이부분에서 document_srl 과 일치하는 값을 찾은후, 없다면 return 한다
+	function showPosition(position) {
+			//alert("welcom showPosition()");
+			var la = position.coords.latitude;
+			var ln = position.coords.longitude;
+				firstLatLng = new google.maps.LatLng(la, ln);
+				map.setCenter(firstLatLng);
+				map.setZoom(8);
+	}
+	// 도움말 버튼
+	function help(){jQuery('#myTab a:last').tab('show');}
+	// 지도 확대 메소드
+	function zoom_in(){
+
+		//map.setZoom(map.getZoom()+1);jQuery('#myTab a:first').tab('show');
+
+
+		}
+	// 지도 축소 메소드
+	function zoom_out(){map.setZoom(map.getZoom()-1);}
+	//글자내 여백 제거
+	function trim(str){return str.replace(/(^ +| +$)/g,'');	}
+	// 특수 문자 제거 메소드
+	function specialChars(str){var specialChars = /[~!#$^&*=+|:;?"<,.>']/; return str.split(specialChars).join("");}
+
+	// HOME 버튼 컨트롤 메소드
+	function HomeControl(controlDiv, map) {
+	  controlDiv.style.padding = '5px';
+	  var controlUI = document.createElement('DIV');
+	  controlUI.style.backgroundColor = 'white';
+	  controlUI.style.borderStyle = 'solid';
+	  controlUI.style.borderWidth = '2px';
+	  controlUI.style.cursor = 'pointer';
+	  controlUI.style.textAlign = 'center';
+	  controlUI.title = 'Click to set the map to Home';
+	  controlDiv.appendChild(controlUI);
+	  var controlText = document.createElement('DIV');
+	  controlText.style.fontFamily = 'Arial,sans-serif';
+	  controlText.style.fontSize = '12px';
+	  controlText.style.paddingLeft = '4px';
+	  controlText.style.paddingRight = '4px';
+	  controlText.innerHTML = 'Home';
+	  controlUI.appendChild(controlText);
+
+	//HOME 버튼 클릭시 동작하는 액션
+	  google.maps.event.addDomListener(controlUI, 'click', function() {
+		map.setCenter(firstLatLng);
+		map.setZoom(8);
+	  });
+	}
+		document.onload=initialize();
+</script>
+
+
+		/*
+		var progressbarOption = {width:150, loadstring: 'Loading... Please Wait T^T'};
+		var progressBar = new ProgressbarControl(map, progressbarOption);
+
+
+		src="http://gmaps-utility-library.googlecode.com/svn/trunk/progressbarcontrol/1.0/src/progressbarcontrol.js"></script >
+		*/

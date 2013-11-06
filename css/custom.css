@@ -1,0 +1,17 @@
+.clear {clear:both;}
+.viewMap {overflow:hidden; }
+
+.map_info {}
+.map_info {margin:0 auto; width:1100px !important; }
+.left_wrap {float: left;width:100%;max-width:640px;}
+.info1 {max-width:640px;border:1px solid green;padding:15px 20px !important;overflow:hidden;}
+.thum_div {padding:15px 0 15px 0 !important;width:100%;}
+.thum_ul {list-style:none;}
+.thum_ul li {float:left; margin-left:15px;}
+.thum_ul .fr {margin:0;}
+.info1 table {width:100%; }
+.info1 table tr td {border:1px solid gray;padding:10px; }
+.right_wrap {float: left;margin-left:20px;width:100%; max-width:350px;border:1px solid blue;}
+.info2 {overflow:hidden;WIDTH:100% !important}
+
+.info2 {}

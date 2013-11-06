@@ -1,0 +1,54 @@
+<!--이 부분은, 셀렉터 박스들이 존재 하는 곳 빈길맵 상단-->
+
+
+
+<div style="margin:0 auto;width:980px;border:1px solid red">
+	<div id = "selector_canvas">
+		<form name="form_selector" style="padding:0;margin:0;">
+			<ul class="nav nav-pills">
+        <li class="active"><a href="#">Regular link</a></li>
+        <li class="dropdown">
+          <a id="drop4" role="button" data-toggle="dropdown" href="#">지역검색 <b class="caret"></b></a>
+          <ul id="menu1" class="dropdown-menu" role="menu" aria-labelledby="drop4">
+            <ul>
+				<li role="presentation"><a role="menuitem" tabindex="-1" href="#"><input type="checkbox" id="squaredFour1" name ="ch_location" onClick="chboxClick(this.form);"value="4034,4035,4036,4037,4038,4039" /><span>전국</span></a></li>
+				<li role="presentation"><input type="checkbox" id="squaredFour2" name ="ch_location" onClick="chboxClick(this.form);" value="4034" /><span>경기도</span></li>
+				<li><input type="checkbox" id="squaredFour3" name ="ch_location" onClick="chboxClick(this.form);" value="4035" /><span>강원도</span></li>
+				<li><input type="checkbox" id="squaredFour4" name ="ch_location" onClick="chboxClick(this.form);" value="4036" /><span>충청도</span></li>
+				<li><input type="checkbox" id="squaredFour5" name ="ch_location" onClick="chboxClick(this.form);" onClick="chboxClick(this.form);" value="4037" /><span>경상도</span></li>
+				<li><input type="checkbox" id="squaredFour6" name ="ch_location" onClick="chboxClick(this.form);" value="4038" /><span>전라도</span></li>
+				<li><input type="checkbox" id="squaredFour7" name ="ch_location" onClick="chboxClick(this.form);" value="4039" /><span>제주도</span></label></li>
+
+			</ul>
+          </ul>
+        </li>
+
+        <li class="dropdown">
+          <a id="drop5" role="button" data-toggle="dropdown" href="#">추가옵션 <b class="caret"></b></a>
+          <ul id="menu2" class="dropdown-menu" role="menu" aria-labelledby="drop5">
+
+            <li>
+							<select id="autocamping"  onchange="seAutoChange()">
+								<option value="">오토 캠핑장 여부</option>
+								<option value="Yes">오토 캠핑 가능</option>
+								<option value="No">오토 캠핑 불가능</option>
+							</select>
+							<select id="electricity"  onchange ="seElecChange()">
+								<option value="">전기 사용 여부</option>
+								<option value="Yes">전기 사용 가능</option>
+								<option value="No">전기 사용 불가능</option>
+							</select>
+							<select id="bisu_money" onchange ="seMoneyChange()">
+								<option value="">캠핑장 요금 여부</option>
+								<option value="0">무료 캠핑장</option>
+							</select>
+						</li>
+          </ul>
+        </li>
+
+      </ul> <!-- /tabs -->
+
+
+			</form>
+	</div>
+</div>
