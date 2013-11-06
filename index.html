@@ -1,10 +1,26 @@
 
 <load target="css/custom.css" />
-<div class="viewMap">
+<load target="css/jquery.ibutton.css" />
+<load target="css/jquery.ibutton.css" />
+<load target="js/jquery.ibutton.min.js" />
 
-	<?php /*include('map.html');*/?> <!--//map.html 로드-->
+<div class="viewMap">
+	<div>
 	<img src="/layouts/bingil_v3_map/img/ma.jpg">
+	</div>
+	<div class="control">
+		<p>추가옵션</p>
+		<?php include('controls.html'); ?>
+	</div>
 </div>
 <div class="content map_info">
 	<?php include('map_info.html'); ?>
 </div>
+
+<script>
+jQuery(document).ready(function(){
+	jQuery(".control").draggable({ handle: "p" });
+	 jQuery(":checkbox").iButton();
+}); 
+
+</script>
