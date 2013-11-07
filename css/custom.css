@@ -1,7 +1,12 @@
 .clear {clear:both;}
+.bd_top {border-top:1px solid #394148}
 .viewMap {overflow:hidden; position:relative;}
-.viewMap .control {position:absolute;top:40px;right:20px;width:220px;background:#4a565f;display:block; overflow:hidden;border-radius:4px;box-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);}
-.viewMap .control p { cursor: move;font-size:14px;font-weight:bold;margin:0;border-bottom:1px solid #5d6a75;padding:7px 0 9px 5px;color:#e0e8ee;text-align:center;background:#424f58;}
+.viewMap .control {position:absolute;top:40px;right:20px;width:220px;background:#242424;display:block; overflow:hidden;border-radius:4px;box-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);}
+.viewMap .control .control_title { cursor: move;font-size:14px;font-weight:bold;margin:0;border-bottom:1px solid #000;color:#84ff33;text-align:center;background:#1a1a1a;overflow:hidden;}
+.viewMap .control p {display:inline;width:190px;float:left;margin:0;padding:0;border-right:1px solid #394148;padding:10px 0 12px;}
+.viewMap .control .control_close {display:inline;float:right;width:28px;border-left:1px solid #000;padding:10px 0 12px;}
+.viewMap .control .control_close a {padding:5px 8px;text-decoration:none;color:#ddd;text-shadow: 0 -1px 0 #000;}
+.viewMap .control .control_close a:hover {color:#fafafa;text-shadow: 0 1px 0 #000}
 .viewMap .control .iButton {padding:15px 10px;border-top:1px solid #394148}
 .viewMap .control .iButton .row .label {font-size:12px;font-weight:bold;padding:3px 0;color:#99a3a9;float:left;}
 .viewMap .control .iButton .row {margin:5px}
